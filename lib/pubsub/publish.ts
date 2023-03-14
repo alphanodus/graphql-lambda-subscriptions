@@ -12,25 +12,29 @@ export const publish = (serverPromise: Promise<ServerClosure> | ServerClosure): 
   server.log('pubsub:publish', { subscriptions: subscriptions.map(({ connectionId, filter, subscription }) => ({ connectionId, filter, subscription }) ) })
 
   const iters = subscriptions.map(async (sub) => {
-    const payload = await execute({
-      schema: server.schema,
-      document: parse(sub.subscription.query),
-      rootValue: event,
-      contextValue: await buildContext({ server, connectionInitPayload: sub.connectionInitPayload, connectionId: sub.connectionId }),
-      variableValues: sub.subscription.variables,
-      operationName: sub.subscription.operationName,
-    })
+    try {
+      const payload = await execute({
+        schema: server.schema,
+        document: parse(sub.subscription.query),
+        rootValue: event,
+        contextValue: await buildContext({ server, connectionInitPayload: sub.connectionInitPayload, connectionId: sub.connectionId }),
+        variableValues: sub.subscription.variables,
+        operationName: sub.subscription.operationName,
+      })
 
-    const message: NextMessage = {
-      id: sub.subscriptionId,
-      type: MessageType.Next,
-      payload,
+      const message: NextMessage = {
+        id: sub.subscriptionId,
+        type: MessageType.Next,
+        payload,
+      }
+
+      await postToConnection(server)({
+        ...sub.requestContext,
+        message,
+      })
+    } catch (error) {
+      console.error(error);
     }
-
-    await postToConnection(server)({
-      ...sub.requestContext,
-      message,
-    })
   })
   await Promise.all(iters)
 }
