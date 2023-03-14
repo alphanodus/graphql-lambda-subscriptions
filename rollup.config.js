@@ -1,6 +1,6 @@
-import resolve from 'rollup-plugin-node-resolve'
+const resolve = require('rollup-plugin-node-resolve')
 
-export default {
+module.exports = {
   input: './dist-ts/index.js',
   plugins: [
     resolve({
